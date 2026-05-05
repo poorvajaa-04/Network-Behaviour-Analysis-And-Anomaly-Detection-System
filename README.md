@@ -1,5 +1,22 @@
 # 🔍 Network Behavior Analysis & Anomaly Detection System
 
+![Python](https://img.shields.io/badge/Python-3.8+-blue)
+
+
+
+
+![License](https://img.shields.io/badge/License-Educational-lightgrey)
+
+
+
+
+![Status](https://img.shields.io/badge/Status-Active-success)
+
+
+
+
+![Cybersecurity](https://img.shields.io/badge/Domain-Cybersecurity-red)
+
 > A practical cybersecurity project that captures, analyzes, and monitors real-time network traffic using Wireshark and Python — with an integrated rule-based anomaly detection and alerting engine.
 
 ---
