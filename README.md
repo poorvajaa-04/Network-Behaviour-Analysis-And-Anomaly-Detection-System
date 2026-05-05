@@ -195,7 +195,7 @@ The full project report is available in `docs/project_report.md` and covers:
 Integrated M.Tech CSE, cybersecurity — Year 1  
 
 - GitHub: [poorvajaa-04](https://github.com/poorvajaa-04) 
-- LinkedIn: [https://www.linkedin.com/in/poorvajaa-s-286a50398/]
+- LinkedIn: (https://www.linkedin.com/in/poorvajaa-s-286a50398/)
 
 ---
 
