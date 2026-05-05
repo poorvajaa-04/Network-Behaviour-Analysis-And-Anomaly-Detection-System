@@ -1,23 +1,8 @@
 # 🔍 Network Behavior Analysis & Anomaly Detection System
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue)
-
-
-
-
-![License](https://img.shields.io/badge/License-Educational-lightgrey)
-
-
-
-
-![Status](https://img.shields.io/badge/Status-Active-success)
-
-
-
-
-![Cybersecurity](https://img.shields.io/badge/Domain-Cybersecurity-red)
 
 > A practical cybersecurity project that captures, analyzes, and monitors real-time network traffic using Wireshark and Python — with an integrated rule-based anomaly detection and alerting engine.
+
 
 ---
 
@@ -178,16 +163,6 @@ Comparing traffic across these three scenarios forms the behavioral baseline —
 
 ---
 
-## 📷 Sample Visualization
-
-
-
-![Idle Protocol Distribution](visualizations/idle_protocols.png)
-
-
-
----
-
 ## 📝 Documentation
 
 The full project report is available in `docs/project_report.md` and covers:
@@ -216,12 +191,11 @@ The full project report is available in `docs/project_report.md` and covers:
 
 ## 👤 Author
 
-**[Your Name]**  
-BSc Cybersecurity — Year 2  
-Cybersecurity Student | Network Security | SOC Analyst Aspirant
+**Poorvajaa S**  
+Integrated M.Tech CSE, cybersecurity — Year 1  
 
-GitHub: [@yourusername](https://github.com/yourusername)  
-LinkedIn: [Your LinkedIn URL]
+GitHub: [poorvajaa-04](https://github.com/poorvajaa-04) 
+LinkedIn: [https://www.linkedin.com/in/poorvajaa-s-286a50398/]
 
 ---
 
