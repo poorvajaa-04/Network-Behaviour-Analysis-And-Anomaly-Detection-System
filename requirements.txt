@@ -1,0 +1,3 @@
+pyshark
+matplotlib
+pandas
