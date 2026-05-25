@@ -1,0 +1,239 @@
+ANALYSIS REPORT — IDLE STATE
+===================================================================================================================
+Capture File : idle.pcap
+Capture Date : May 6, 2026 — 05:31:19 to 05:36:20 UTC
+Duration     : ~5 minutes (300 seconds)
+Total Packets: 873 frames | 342,041 bytes
+===================================================================================================================
+
+
+--------------------------------------------------------------------------------------------------------------------
+Protocol Distribution:
+--------------------------------------------------------------------------------------------------------------------
+
+The traffic breaks down roughly as follows (by bytes):
+
+  - About 38% of traffic is TLS — encrypted data sent over TCP
+  - About 43% is QUIC — a newer encrypted protocol, mostly used by LinkedIn here
+  - DNS (name lookups) accounts for about 1.2%
+  - SSDP (TV discovery broadcasts) is about 2.4%
+  - Everything else — mDNS, ARP, ICMPv6, TP-Link — is under 1% each
+
+Nearly all application-layer traffic is encrypted. No plaintext HTTP was observed. 
+All encrypted sessions appear to use TLS 1.3, the current standard.
+
+Also worth noting: about 47% of frames carry a VLAN tag (a network label added by switches or access points). 
+This is more than you'd typically expect on a basic home network and may suggest a managed switch or 
+VLAN-capable router is in use — though this doesn't change what the traffic contains.
+
+
+--------------------------------------------------------------------------------------------------------------------
+Top IP Addresses:
+--------------------------------------------------------------------------------------------------------------------
+
+  Local devices seen in the capture:
+
+    192.168.1.9   — the main computer. Generated the majority of traffic.
+    192.168.1.1   — the home router, acting as a relay for DNS and routing.
+    192.168.1.2   — an LG Smart TV (identified by its broadcast messages).
+
+  External servers contacted:
+
+    34.36.73.246          — resolves to tzm.protechts.net, hosted on Google Cloud.
+                            Purpose unknown — discussed further below.
+    2620:1ec:50::12       — LinkedIn's servers. The most-contacted external address.
+    2001:4860:4802:32::   — Google (googleapis.com).
+    2600:1901:1:7c5::     — Spotify's background sync server.
+    20.42.65.90           — a Microsoft Azure IP, contacted briefly once.
+
+  The main computer generated around 649 of the 873 total packets — more than all other devices combined.
+
+  The LG TV shows outbound traffic but no inbound. This is because everything it sent was a broadcast 
+  (announcements to the whole network), so nothing was addressed back to it directly.
+
+
+--------------------------------------------------------------------------------------------------------------------
+DNS Queries:
+--------------------------------------------------------------------------------------------------------------------
+
+  Domains looked up during the capture, in order:
+
+    ~18s    www.linkedin.com        → resolved (by a second device on the network)
+    ~90s    local TV service scan   → from the LG TV, looking for local devices
+    ~118s   www.linkedin.com        → resolved again (from the main computer)
+    ~166s   www.googleapis.com      → resolved (Google APIs)
+    ~178s   tzm.protechts.net       → resolved to 34.36.73.246
+    ~238s   www.linkedin.com        → resolved again (third time)
+    ~282s   LGwebOSTV.local         → TV announcing itself on the local network
+    ~295s   local service scan      → TV scanning for other local services
+
+  A few patterns worth pointing out:
+
+  LinkedIn was looked up three times — at 18s, 118s, and 238s — almost exactly 60 seconds apart each time. 
+  This looks like an automatic background process rather than someone manually visiting the site.
+
+  tzm.protechts.net was looked up once, automatically, around the 3-minute mark. 
+  It's not a recognisable service name, and the lookup was not preceded by any visible user action in the capture.
+
+  All DNS queries went through the router (192.168.1.1). Responses for LinkedIn came back over TCP rather 
+  than the usual UDP, which just means LinkedIn's DNS response was large — they return multiple server 
+  addresses for load balancing.
+
+
+--------------------------------------------------------------------------------------------------------------------
+Conversations:
+--------------------------------------------------------------------------------------------------------------------
+
+  20 separate TCP sessions were recorded. The most significant ones:
+
+  LinkedIn (main session)
+    Duration: ~296 seconds — ran almost the entire length of the capture.
+    Data: 114 KB across 322 packets.
+    This was the dominant session. It used both TLS (standard encrypted TCP) and QUIC simultaneously to the 
+    same server.
+
+  LinkedIn (two short burst sessions)
+    Both opened within the first 30 seconds, lasted under half a second each, and transferred about 13 KB each. 
+    These likely correspond to a page loading and fetching multiple resources at once.
+
+  tzm.protechts.net (two sessions, opened at the same time)
+    Both started at around 177.9 seconds, from two different source ports, to the same destination 
+    (34.36.73.246 on port 443). Each lasted about 75 seconds before the server closed them.
+    Combined data: ~11.6 KB, all encrypted.
+    After the server closed the connections, the client continued sending keepalive probes for about another 
+    45 seconds — suggesting the client expected these sessions to stay open longer than they did.
+
+  Spotify
+    One very short session (~0.3 seconds, 7.2 KB) at around 197 seconds.
+    Consistent with a background sync rather than active playback.
+    There was also an earlier connection attempt at ~27s that didn't complete.
+
+  Microsoft Azure
+    Three packets, 0.6 seconds, at around 79 seconds. Didn't develop into a full session. 
+    Likely a routine background check by the OS or an app.
+
+  Nine of the twenty sessions are DNS-over-TCP queries to the router —
+  these are just name lookups that happened to be large enough to require TCP.
+
+
+--------------------------------------------------------------------------------------------------------------------
+IO Graph Observations:
+--------------------------------------------------------------------------------------------------------------------
+
+  Baseline traffic between spikes is low — roughly 7 to 15 packets and 1,300 to 2,200 bytes per 10-second 
+  window. Spikes appear at regular intervals.
+
+  0–10s      Low activity. Router and computer exchanging address discovery
+             messages. A second device queries LinkedIn's DNS.
+
+  10–30s     First traffic surge. LinkedIn DNS resolves, two quick TLS sessions
+             open. This looks like an initial page load or app startup.
+
+  30–50s     Traffic drops back to baseline.
+
+  50–60s     Spike (~34 KB). A burst of QUIC packets from LinkedIn — large
+             payloads suggesting actual data being pushed, not just keepalives.
+
+  60–110s    Mostly quiet. Brief Azure contact at 79s. TV SSDP broadcast at 90s.
+
+  110–120s   Spike (~40 KB). Another LinkedIn TLS burst, with fresh DNS lookups
+             and new handshakes — the 60-second reconnect cycle visible here.
+
+  120–160s   Quiet. googleapis.com DNS query appears near the end of this window.
+
+  160–170s   Moderate activity. Google API session opens after DNS resolves.
+
+  170–180s   Largest spike in the capture (~57 KB, 135 packets in 10 seconds).
+             Several things happen at once: LinkedIn reconnects again, Google
+             API data flows, and tzm.protechts.net is looked up and connected to.
+
+  180–230s   Traffic settles. tzm connections are open but quiet.
+             Spotify checks in briefly at 197s.
+
+  230–240s   Spike (~37 KB). Third LinkedIn QUIC burst, with another DNS re-query.
+
+  240–290s   Mixed low activity. TV mDNS and AirPlay broadcasts at ~282s.
+
+  290–300s   Spike (~58 KB). LinkedIn reconnect cycle again at the end of capture.
+
+  The spikes at 50s, 110s, 170s, 230s, and 290s are spaced almost exactly 60 seconds apart, which lines up 
+  with the LinkedIn DNS re-query intervals.
+
+
+-------------------------------------------------------------------------------------------------------------------
+Inference and Conclusion:
+-------------------------------------------------------------------------------------------------------------------
+
+  DEVICES ON THE NETWORK
+  ──────────────────────────────────────────────────────────────────────────────────
+  At least three devices were active during this capture.
+
+  The main computer (192.168.1.9) generated most of the traffic. Based on
+  its use of QUIC/HTTP3, it's likely running a modern browser such as Chrome, Edge, or a recent version of Firefox.
+
+  The LG Smart TV (192.168.1.2) was in standby — not streaming, just periodically announcing its presence to 
+  the local network via SSDP and mDNS every 90 seconds or so. 
+  Its model (UQ8050PSB) was visible in the packet data.
+
+  A third device (identifiable only by a link-local IPv6 address) also looked up LinkedIn at the start of the 
+  capture, suggesting it may have had the site open as well. Its type couldn't be determined from this capture 
+  alone.
+
+  WHY "IDLE" STILL PRODUCES TRAFFIC
+  ─────────────────────────────────────────────────────────────────────────────────────
+  Even with no active user interaction, the network wasn't quiet. Several things were running in the background:
+
+  LinkedIn appeared to reconnect to its servers roughly every 60 seconds.
+  This is consistent with how apps maintain a live connection for notifications
+  — the regular spikes in the IO graph match this cycle closely.
+
+  Spotify made a brief check-in at around 197 seconds despite no apparent playback. 
+  This is typical behaviour for the desktop or mobile app keeping its session alive.
+
+  The LG TV broadcast its presence on the local network every ~90 seconds, which is standard for WebOS TVs in 
+  standby.
+
+  The router and computer exchanged small address-resolution messages (ARP and ICMPv6) throughout — routine 
+  network maintenance.
+
+  This is fairly normal for a modern device. "Idle" for a user doesn't mean idle for the software running in 
+  the background.
+
+  THE UNKNOWN DOMAIN: tzm.protechts.net
+  ────────────────────────────────────────────────────────────────────────────────────────
+  The one finding that stands out is the connection to tzm.protechts.net,
+  which resolved to a Google Cloud IP (34.36.73.246).
+
+  What the capture shows:
+    - Around 177 seconds in, the client looked up tzm.protechts.net and immediately opened two simultaneous 
+    encrypted connections to it.
+    - Both connections completed successfully and stayed open for about 75 seconds.
+    - The server closed both connections (not the client).
+    - After that, the client kept probing the closed connections for another ~45 seconds, suggesting it 
+    expected them to remain open longer.
+    - Total data exchanged was small — around 11.6 KB combined.
+    - This happened automatically, with no obvious user action triggering it.
+
+  What's uncertain:
+    - The traffic is fully encrypted, so the content can't be read.
+    - "protechts" doesn't match any widely known service, CDN, or OS component.
+    - It could be a legitimate background application — endpoint management software, a corporate security agent, 
+    or a less common SaaS tool.
+    - It could also be something less expected. Without knowing what's installed on the computer, it's hard to say.
+
+  The connection itself doesn't look alarming in terms of volume, but the domain is unrecognised and the 
+  behaviour (automatic, parallel, server-timed) is worth a closer look. Checking what's running on 192.168.1.9 
+  — installed applications, browser extensions, startup processes — would be the natural next step.
+
+  OVERALL PICTURE
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  This is a quiet five-minute window on what appears to be a home or small office network. 
+  The traffic is dominated by LinkedIn's background activity on the main computer, with minor contributions
+  from Spotify, Google, and the LG TV. Almost everything is encrypted, which is expected and normal.
+
+  The only item that doesn't have an obvious explanation is tzm.protechts.net.
+  Every other external address in the capture — LinkedIn, Google, Spotify, Cloudflare, Microsoft — is a 
+  recognisable service. That one isn't, and it would be worth identifying before treating this capture as fully understood.
+
+===========================================================================================================================
+End of Report
