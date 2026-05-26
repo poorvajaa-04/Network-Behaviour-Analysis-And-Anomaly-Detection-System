@@ -20,15 +20,15 @@ Traffic breakdown by bytes across the capture:
   - A small amount of plaintext HTTP was observed — discussed below
 
 Nearly everything is encrypted. All TLS sessions appear to use TLS 1.3. 
-QUIC traffic is notably higher here than in the idle capture, which is consistent with active browsing on Google and 
-YouTube properties.
+QUIC traffic is notably higher here than in the idle capture, which is consistent with active browsing on Google 
+and YouTube properties.
 
 One difference from idle: a handful of unencrypted HTTP requests appear in this capture. 
 These are not page visits — they are certificate status checks (OCSP) and a Microsoft BITS download request 
 (a background Windows update component). No sensitive page content was transmitted in plaintext.
 
-VLAN-tagged frames again make up a large portion — around 53% — similar to the idle capture, and likely for the same 
-infrastructure reason.
+VLAN-tagged frames again make up a large portion — around 53% — similar to the idle capture, and likely for the 
+same infrastructure reason.
 
 As a point of comparison with the idle capture: total bytes here are ~85 MB versus ~342 KB in the idle file. 
 This is roughly 250 times more data, reflecting active browsing rather than a quiet background state.
@@ -79,8 +79,8 @@ Top IP Addresses:
     34.36.73.246     — 33 packets. The same tzm.protechts.net server from the
                        idle capture. Appeared again here.
 
-  The main computer (192.168.1.9) generated around 50,424 packets by IPv6
-  count — again the dominant device by a wide margin.
+  The main computer (192.168.1.9) generated around 50,424 packets by IPv6 count — again the dominant device by a 
+  wide margin.
 
 
 ------------------------------------------------------------------------------------------------------------------
@@ -151,7 +151,8 @@ DNS Queries:
   A "Poorvajaa" string appeared 8 times in DNS queries. This appears to be a hostname being looked up on the local 
   network (possibly a printer, NAS, or another device named "Poorvajaa"). It did not resolve externally.
 
-  tzm.protechts.net was queried again at around 236 seconds — the same unknown domain from the idle capture, re-appearing here.
+  tzm.protechts.net was queried again at around 236 seconds — the same unknown domain from the idle capture, 
+  re-appearing here.
 
 
 -------------------------------------------------------------------------------------------------------------------
@@ -162,37 +163,43 @@ Conversations:
 
   YCombinator / bookface-static (192.168.1.9 ↔ 108.158.251.61)
     Two sessions, together accounting for ~11,758 packets and ~33 MB.
-    Both started around 264 seconds into the capture and ran until the end (~295 seconds). The data volume is large — this is 
-    almost certainly static assets (images, JavaScript, CSS) loading for the YCombinator forum. The sheer size makes 
-    this the dominant session in the capture.
+    Both started around 264 seconds into the capture and ran until the end (~295 seconds). The data volume is large 
+    — this is almost certainly static assets (images, JavaScript, CSS) loading for the YCombinator forum. The sheer
+    size makes this the dominant session in the capture.
 
   YCombinator main site (192.168.1.9 ↔ 172.66.144.64)
-    2,838 packets, 4.3 MB, starting around 270 seconds. Runs alongside the above, consistent with a forum page loading its 
-    resources from multiple servers simultaneously.
+    2,838 packets, 4.3 MB, starting around 270 seconds. Runs alongside the above, consistent with a forum page 
+    loading its resources from multiple servers simultaneously.
 
   Google / YouTube (client ↔ 2404:6800:4003:c04::65)
-    2,300 packets, 2.8 MB, starting at ~292 seconds. Google IPv6 address; likely YouTube content or Google Drive assets loading.
+    2,300 packets, 2.8 MB, starting at ~292 seconds. Google IPv6 address; likely YouTube content or Google Drive
+    assets loading.
 
   GitHub (192.168.1.9 ↔ 20.207.73.82)
-    Two sessions totalling ~669 packets and ~743 KB, starting around 157–166 seconds and lasting over 76 seconds each. 
-    This matches the GitHub DNS queries observed around the same time.
+    Two sessions totalling ~669 packets and ~743 KB, starting around 157–166 seconds and lasting over 76 seconds
+    each. This matches the GitHub DNS queries observed around the same time.
 
   GitHub collector (192.168.1.9 ↔ 140.82.114.22)
-    571 packets, 337 KB, lasting ~133 seconds. The SNI points to collector.github.com — GitHub's telemetry endpoint that 
-    records usage events (page visits, feature interactions). High byte count for a telemetry channel, though the traffic is encrypted.
+    571 packets, 337 KB, lasting ~133 seconds. The SNI points to collector.github.com — GitHub's telemetry endpoint
+    that records usage events (page visits, feature interactions). High byte count for a telemetry channel, though 
+    the traffic is encrypted.
 
   LinkedIn (client ↔ 2620:1ec:50::12)
     383 packets, 155 KB, running the full length of the capture from t=0.
-    Consistent with the idle capture — LinkedIn's persistent background session was still active when this capture began.
+    Consistent with the idle capture — LinkedIn's persistent background session was still active when this capture
+    began.
 
   bettermindlabs.org (192.168.1.9 ↔ 34.160.37.117 and 34.149.206.255)
-    Two sessions, combined ~504 packets and ~406 KB, starting around 237–247 seconds. The site itself is not widely known. 
-    PostHog and Google Analytics were loaded as part of visiting it, suggesting it's a real website with standard tracking embedded. 
+    Two sessions, combined ~504 packets and ~406 KB, starting around 237–247 seconds. The site itself is not 
+    widely known. 
+    PostHog and Google Analytics were loaded as part of visiting it, suggesting it's a real website with 
+    standard tracking embedded. 
     A Sentry error reporting endpoint also fired, which is common on modern web apps.
 
   tzm.protechts.net (192.168.1.9 ↔ 34.36.73.246)
-    33 packets, 14 KB, starting at ~236 seconds. Two simultaneous connections again (same pattern as the idle capture), both closed
-    by the server after about 30 seconds. Smaller and shorter than in the idle capture, but structurally identical behaviour.
+    33 packets, 14 KB, starting at ~236 seconds. Two simultaneous connections again (same pattern as the idle 
+    capture), both closed by the server after about 30 seconds. Smaller and shorter than in the idle capture, but
+    structurally identical behaviour.
 
   AWS / S3 (192.168.1.9 ↔ 54.156.11.72)
     Two sessions, 308 packets combined, starting at ~239 and ~249 seconds.
@@ -203,8 +210,7 @@ Conversations:
 IO Graph Observations:
 ------------------------------------------------------------------------------------------------------------------
 
-  Traffic measured in 30-second windows (larger intervals used due to much
-  higher volume in this capture):
+  Traffic measured in 30-second windows (larger intervals used due to much higher volume in this capture):
 
   Interval      Frames    Bytes       Activity
   ----------    ------    ---------   -----------------------------------------------
@@ -256,9 +262,8 @@ IO Graph Observations:
 
   300s+             10    2.4 KB      Capture ends. Tail end of existing sessions.
 
-  Unlike the idle capture's regular 60-second rhythm, traffic here is more
-  uneven — reflecting actual user actions (opening tabs, loading pages,
-  switching between sites). The clearest pattern is two quiet gaps (90–150s)
+  Unlike the idle capture's regular 60-second rhythm, traffic here is more uneven — reflecting actual user actions 
+  (opening tabs, loading pages, switching between sites). The clearest pattern is two quiet gaps (90–150s) 
   suggesting a pause in browsing, followed by a burst when new tabs opened.
 
 
@@ -293,58 +298,62 @@ Inference and Conclusion:
   ─────────────────────────
   Three local IP addresses appeared that were not in the idle capture:
 
-  192.168.1.5 sent SSDP M-SEARCH broadcasts every ~60 seconds throughout the session. This is a device actively looking for UPnP 
-  services on the network. It could be a smart home controller, a media app, or another computer. Its identity couldn't be confirmed 
-  from the packets alone.
+  192.168.1.5 sent SSDP M-SEARCH broadcasts every ~60 seconds throughout the session. This is a device actively 
+  looking for UPnP services on the network. It could be a smart home controller, a media app, or another computer. 
+  Its identity couldn't be confirmed from the packets alone.
 
-  192.168.1.7 sent a handful of packets, all outbound. Possibly a device that woke briefly, sent some background traffic, and went quiet.
+  192.168.1.7 sent a handful of packets, all outbound. Possibly a device that woke briefly, sent some background 
+  traffic, and went quiet.
 
   192.168.1.11 appeared once. Not enough data to characterise it.
 
   PROCTORAUTH — EXAM PROCTORING SOFTWARE
   ──────────────────────────────────────
-  Two domains — gbl.proctorauth.com and cdn.proctorauth.com — were queried within the first 15 seconds of the capture, alongside YouTube 
-  and Google Docs. ProctorAuth and Proctor.io are services used by universities and online exam platforms to monitor students during 
-  remote assessments. They typically run as a browser extension or web app that checks system conditions (screen, camera, tab activity) 
-  during a test.
+  Two domains — gbl.proctorauth.com and cdn.proctorauth.com — were queried within the first 15 seconds of the capture, 
+  alongside YouTube and Google Docs. ProctorAuth and Proctor.io are services used by universities and online exam 
+  platforms to monitor students during remote assessments. They typically run as a browser extension or web app that 
+  checks system conditions (screen, camera, tab activity) during a test.
 
-  Finding ProctorAuth traffic alongside YouTube and Google Docs is unusual, but not necessarily suspicious. It may simply indicate that a 
-  browser tab, extension, or background session related to an online assessment platform was active during the capture. The packet data 
-  alone is not sufficient to determine the exact context of use.
+  Finding ProctorAuth traffic alongside YouTube and Google Docs is unusual, but not necessarily suspicious. It may 
+  simply indicate that a browser tab, extension, or background session related to an online assessment platform was 
+  active during the capture. The packet data alone is not sufficient to determine the exact context of use.
 
   BETTERMINDLABS.ORG
   ──────────────────
-  This domain appeared around 166 seconds and generated ~406 KB of traffic across two sessions. It resolves to Google Cloud. The site loaded 
-  PostHog analytics, Google Analytics, Google Tag Manager, and a Sentry error reporting endpoint — all standard embedded tools on modern websites.
-  The Sentry endpoint ID (o4506690008121344) is specific to one Sentry account, meaning the website is a real, actively maintained web app.
+  This domain appeared around 166 seconds and generated ~406 KB of traffic across two sessions. It resolves to Google 
+  Cloud. The site loaded PostHog analytics, Google Analytics, Google Tag Manager, and a Sentry error reporting endpoint 
+  — all standard embedded tools on modern websites. The Sentry endpoint ID (o4506690008121344) is specific to one Sentry 
+  account, meaning the website is a real, actively maintained web app.
   Nothing about the traffic itself is unusual — it's just a site that isn't widely recognisable by name.
 
   tzm.protechts.net — SAME UNKNOWN DOMAIN, AGAIN
   ──────────────────────────────────────────────
-  The same domain from the idle capture appeared again here, at around 236 seconds. The behaviour was structurally identical: two simultaneous
-  connections opened, data exchanged, server closed the connections. This time the session was shorter (~30 seconds vs ~75 seconds) and the data
-  volume was smaller (~14 KB vs ~11.6 KB). Its reappearance in an active browsing session, a few minutes after the idle capture, suggests it fires
-  on a schedule or in response to some trigger — rather than being a one-off.
+  The same domain from the idle capture appeared again here, at around 236 seconds. The behaviour was structurally identical: 
+  two simultaneous connections opened, data exchanged, server closed the connections. This time the session was shorter 
+  (~30 seconds vs ~75 seconds) and the data volume was smaller (~14 KB vs ~11.6 KB). Its reappearance in an active browsing 
+  session, a few minutes after the idle capture, suggests it fires on a schedule or in response to some trigger — rather than 
+  being a one-off.
 
-  The recommendation from the idle capture still applies: identifying what application on 192.168.1.9 connects to this domain would be the most
-  direct way to resolve whether it's expected behaviour or not.
+  The recommendation from the idle capture still applies: identifying what application on 192.168.1.9 connects to this domain 
+  would be the most direct way to resolve whether it's expected behaviour or not.
 
   TRACKING AND ANALYTICS LOAD
   ────────────────────────────
-  Several analytics and tracking scripts were loaded as a side effect of visiting various sites — particularly toward the end of the capture. These
-  included Google Analytics, Google Tag Manager, DoubleClick, PostHog, Sentry,and Microsoft Clarity (www.clarity.ms, scripts.clarity.ms, c.clarity.ms,
-  b.clarity.ms). Microsoft Clarity is a session-recording tool that can capture mouse movements and clicks. These are all standard embedded services
-  rather than signs of anything unusual, but they do illustrate how much third-party data collection happens in the background of ordinary browsing.
+  Several analytics and tracking scripts were loaded as a side effect of visiting various sites — particularly toward the end 
+  of the capture. These included Google Analytics, Google Tag Manager, DoubleClick, PostHog, Sentry,and Microsoft Clarity 
+  (www.clarity.ms, scripts.clarity.ms, c.clarity.ms, b.clarity.ms). Microsoft Clarity is a session-recording tool that can 
+  capture mouse movements and clicks. These are all standard embedded services rather than signs of anything unusual, but 
+  they do illustrate how much third-party data collection happens in the background of ordinary browsing.
 
   OVERALL PICTURE
   ───────────────
-  This is a clearly active browsing session. The user appears to have had YouTube, Google Docs/Drive, GitHub, YCombinator's forum, and at least one
-  Wix-hosted site open, along with LinkedIn running in the background. Traffic volume is dramatically higher than the idle capture, and the pattern 
-  reflects real user actions rather than automated background processes.
+  This is a clearly active browsing session. The user appears to have had YouTube, Google Docs/Drive, GitHub, YCombinator's 
+  forum, and at least one Wix-hosted site open, along with LinkedIn running in the background. Traffic volume is dramatically 
+  higher than the idle capture, and the pattern reflects real user actions rather than automated background processes.
 
-  The main items that stand out are: ProctorAuth loading alongside YouTube and Docs (context-dependent whether this is notable), and tzm.protechts.net
-  reappearing for the second time. Everything else observed — including the analytics scripts and Amazon S3 requests — is consistent with normal modern
-  web browsing behaviour.
+  The main items that stand out are: ProctorAuth loading alongside YouTube and Docs (context-dependent whether this is notable), 
+  and tzm.protechts.net reappearing for the second time. Everything else observed — including the analytics scripts and 
+  Amazon S3 requests — is consistent with normal modern web browsing behaviour.
 
-=======================================================================================================================
+=====================================================================================================================================================================
 End of Report
