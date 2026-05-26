@@ -165,7 +165,7 @@ Inference and Conclusion:
 -------------------------------------------------------------------------------------------------------------------
 
   DEVICES ON THE NETWORK
-  ──────────────────────────────────────────────────────────────────────────────────
+  ──────────────────────
   At least three devices were active during this capture.
 
   The main computer (192.168.1.9) generated most of the traffic. Based on
@@ -180,7 +180,7 @@ Inference and Conclusion:
   alone.
 
   WHY "IDLE" STILL PRODUCES TRAFFIC
-  ─────────────────────────────────────────────────────────────────────────────────────
+  ─────────────────────────────────
   Even with no active user interaction, the network wasn't quiet. Several things were running in the background:
 
   LinkedIn appeared to reconnect to its servers roughly every 60 seconds.
@@ -200,7 +200,7 @@ Inference and Conclusion:
   the background.
 
   THE UNKNOWN DOMAIN: tzm.protechts.net
-  ────────────────────────────────────────────────────────────────────────────────────────
+  ─────────────────────────────────────
   The one finding that stands out is the connection to tzm.protechts.net,
   which resolved to a Google Cloud IP (34.36.73.246).
 
@@ -226,7 +226,7 @@ Inference and Conclusion:
   — installed applications, browser extensions, startup processes — would be the natural next step.
 
   OVERALL PICTURE
-  ───────────────────────────────────────────────────────────────────────────────────────────
+  ───────────────
   This is a quiet five-minute window on what appears to be a home or small office network. 
   The traffic is dominated by LinkedIn's background activity on the main computer, with minor contributions
   from Spotify, Google, and the LG TV. Almost everything is encrypted, which is expected and normal.
