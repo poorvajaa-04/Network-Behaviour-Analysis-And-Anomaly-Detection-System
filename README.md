@@ -68,6 +68,10 @@ network-behavior-anomaly-detection/
 │
 ├── docs/
 │   └── project_report.md      # Full formal project report
+|   └── screenshots/
+|       ├── idle/
+│       ├── browsing/
+│       └── app_usage/
 │
 ├── requirements.txt
 ├── .gitignore
