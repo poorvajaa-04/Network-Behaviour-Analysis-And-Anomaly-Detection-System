@@ -55,6 +55,9 @@ network-behavior-anomaly-detection/
 │   ├── idle_report.txt
 │   ├── browsing_report.txt
 │   └── app_usage_report.txt
+    └── manual_app_usage_report.txt
+│   ├── manual_browsing_report.txt
+│   └── manual_app_usage_report.txt
 │
 ├── alerts/                    # Per-scenario anomaly alert logs
 │   ├── idle_alerts.txt
