@@ -1,0 +1,195 @@
+# Network Behavior Analysis & Anomaly Detection System — Project Report
+
+**Author:** Poorvajaa S — Integrated M.Tech CSE, Cybersecurity, Year 1
+**Repository:** `poorvajaa-04/Network-Behaviour-Analysis-And-Anomaly-Detection-System`
+**Capture window:** May 6, 2026, 05:31–05:55 UTC
+**Device under study:** 192.168.1.9 (primary computer), home/small-office network
+
+---
+
+## 1. Objectives
+
+1. Establish a behavioral baseline for a single device across three usage states: idle, active browsing, and single-application use.
+2. Manually validate that baseline using Wireshark (protocol hierarchy, conversations, IO graphs, DNS).
+3. Build a Python/PyShark CLI tool that automates metric extraction, applies rule-based anomaly detection, and generates reports, alert logs, and charts without human review of raw packets.
+4. Compare manual and automated findings to evaluate how much of the manual analysis the automated layer actually captures.
+
+## 2. Methodology
+
+Three `.pcap` files were captured with Wireshark under controlled conditions, each ~5 minutes:
+
+| Scenario | Description | Result |
+|---|---|---|
+| `idle` | System on, no user activity, apps closed | 873 frames / 342 KB |
+| `browsing` | Active multi-site browsing | 73,902 frames / ~85 MB |
+| `app_usage` | Single foreground app (YouTube), 4 min after browsing capture | 20,469 frames / ~21 MB |
+
+Each capture was analyzed twice, independently:
+
+- **Manually**, in Wireshark — protocol hierarchy, top talkers, DNS query timeline, conversations, and IO graph in 10–30 s windows, followed by a written inference.
+- **Automatically**, via the Python pipeline in `scripts/` — PyShark parses the pcap, `metrics.py` extracts protocol/IP/DNS counts, `detection.py` runs three fixed rules, and `reporter.py` / `alerting.py` / `visualizer.py` write the outputs.
+
+The automated pipeline reproduces the quantitative packet, IP, and DNS metrics but does not automate the temporal conversation and IO-graph interpretation performed manually in Wireshark — those remain a manual step (§5), which is why the two analyses are reported separately rather than treated as equivalent.
+
+## 3. System Architecture
+
+```
+main.py       → CLI entry point (argparse: --pcap, --scenario)
+parser.py     → loads packets via pyshark.FileCapture
+metrics.py    → Counters for protocol, top 10 src/dst IPs, top 20 DNS queries
+detection.py  → 3 rule checks against the extracted metrics
+alerting.py   → writes alerts/<scenario>_alerts.txt with severity summary
+reporter.py   → writes reports/<scenario>_report.txt
+visualizer.py → writes visualizations/<scenario>_protocols.png and _top_ips.png
+```
+
+Pipeline order in `main.py`: load → extract metrics → write text report → plot charts → run detection → write alert log.
+
+### 3.1 Detection Rules (`detection.py`)
+
+| Rule | Logic | Severity |
+|---|---|---|
+| Suspicious DNS TLD | Domain ends in `.xyz .top .ru .cn .tk .pw` | High |
+| High Packet Volume | Any source IP with > 1000 packets in the capture | Medium |
+| Unexpected Idle Connection | For `idle` scenario only, destination IP not in `IDLE_ALLOWED_IPS` | Medium |
+
+Two implementation details limit how much these rules actually detect, worth flagging directly:
+
+- `IDLE_ALLOWED_IPS = []` is never populated in the codebase. Because the rule only fires `if IDLE_ALLOWED_IPS and ip not in IDLE_ALLOWED_IPS`, an empty list makes the condition always `False` — **the idle-anomaly rule is dead code as shipped.** It never produces an alert regardless of what the idle capture contains.
+- The TLD list and the 1000-packet threshold are static and untuned against the actual baseline data collected (see §5) — 1000 packets is well below normal browsing-session volumes (see idle vs. browsing IP counts below), so it only distinguishes "this IP was very active" from "this IP was quiet," not "this is anomalous."
+
+## 4. Automated Analysis Results
+
+### 4.1 Protocol Distribution (packet counts, top entries)
+
+| Protocol | Idle | Browsing | App Usage |
+|---|---:|---:|---:|
+| TCP | 317 | 19,680 | 653 |
+| TLS | 263 | 7,351 | 313 |
+| QUIC | 188 | 41,703 | 17,981 |
+| DNS | 31 | 999 | 103 |
+| SSDP | 26 | 8 | 30 |
+| ICMPv6 | 14 | 23 | 15 |
+| DATA | 10 | 4,011 | 1,276 |
+| mDNS | 10 | 93 | 83 |
+| TP-Link SmartHome | 8 | 9 | 9 |
+| ARP | 6 | — | 6 |
+
+QUIC dominates app_usage (single video stream) far more than it does browsing (mixed TLS/QUIC across many sites), which is consistent with the manual finding that app_usage was ~90% one YouTube session.
+
+### 4.2 Top Source IPs (packet counts)
+
+| Idle | Browsing | App Usage |
+|---|---|---|
+| 192.168.1.9 — 85 | 108.158.251.61 — 8,654 | 192.168.1.9 — 236 |
+| 192.168.1.1 — 60 | 192.168.1.9 — 8,090 | 192.168.1.1 — 193 |
+| 192.168.1.2 — 45 | 192.168.1.1 — 2,180 | 192.168.1.2 — 55 |
+| 34.36.73.246 — 20 | 172.66.144.64 — 2,006 | 192.168.1.5 — 29 |
+| 20.42.65.90 — 1 | 20.207.73.82 — 498 | 34.36.73.246 — 18 |
+
+### 4.3 Alert Log Output (as generated by `alerting.py`)
+
+| Scenario | High | Medium | Low | Alerts fired |
+|---|---:|---:|---:|---|
+| idle | 0 | 0 | 0 | none |
+| browsing | 0 | 4 | 0 | High Packet Volume ×4 (108.158.251.61, 192.168.1.9, 192.168.1.1, 172.66.144.64) |
+| app_usage | 0 | 0 | 0 | none |
+
+The four browsing alerts are simply the top four talkers exceeding 1000 packets. Cross-checked against the manual analysis, each is explainable by expected high-volume traffic — YCombinator's forum server, the local machine, the router, and Cloudflare/YCombinator's main site — rather than a confirmed indicator of anything malicious. The rule-based engine did not flag the recurring `tzm.protechts.net` activity described below, because none of the three implemented rules target cross-session recurrence or unfamiliar `.net`-class domains — that gap is a rule-coverage limitation, not evidence about what the domain is.
+
+## 5. Manual Analysis Findings
+
+### 5.1 Idle (873 packets, 342 KB)
+
+Baseline "quiet" traffic was not silent. LinkedIn on 192.168.1.9 re-queried DNS and reconnected roughly every 60 seconds throughout the capture — a background keepalive/notification pattern, not user activity. An LG WebOS smart TV (192.168.1.2) broadcast SSDP/mDNS presence announcements every ~90 s. Spotify checked in once briefly. About 47% of frames carried VLAN tags, suggesting a managed switch or VLAN-capable router.
+
+The one unexplained item: at ~177 s, the device looked up **`tzm.protechts.net`** (→ `34.36.73.246`, a Google Cloud IP) and opened two simultaneous encrypted connections, exchanging ~11.6 KB before the *server* closed both — the client kept sending keepalive probes for ~45 s afterward as if it expected the sessions to stay open. No user action visibly triggered this. The domain does not match any recognizable service.
+
+### 5.2 Browsing (73,902 packets, ~85 MB)
+
+Clearly active use: Google/YouTube/Docs/Drive in the first 15 s, a 90–150 s lull, then GitHub, LinkedIn, and `bettermindlabs.org` opening around 150–180 s, followed by the largest burst of the capture (240–300 s) as YCombinator's Bookface forum and a Wix-hosted site loaded, pulling in PostHog, Sentry, Google Analytics, Tag Manager, and Microsoft Clarity trackers. Two domains stand out as worth a second look rather than alarm:
+
+- **`gbl.proctorauth.com` / `cdn.proctorauth.com`** (exam-proctoring software) queried in the first 15 seconds alongside YouTube and Docs — unusual combination, not inherently suspicious, but unexplained by the capture alone.
+- **`tzm.protechts.net`** appeared again at ~236 s, same two-simultaneous-connection pattern, this time only ~14 KB and ~30 s before server close — structurally identical to the idle capture.
+
+### 5.3 App Usage (20,469 packets, ~21 MB)
+
+The simplest capture to characterize: ~90% of all traffic was one QUIC stream to a Google video CDN address serving `rr2---sn-ci5gup-h55el.googlevideo.com` (YouTube), running at a sustained rate for the full 5 minutes — consistent with continuous video playback. LinkedIn's background session persisted on the same 60-second cycle seen in every capture. A device at 192.168.1.11 repeatedly searched for a Chromecast (`_googlecast._tcp.local`) that never answered.
+
+**`tzm.protechts.net` appeared a third time**, at ~271 s, again with two simultaneous connections and a similar small data exchange, again closed by the server.
+
+### 5.4 Cross-Scenario Pattern: `tzm.protechts.net`
+
+This is the report's central finding, and it was surfaced by manual analysis, not by the automated detector:
+
+| Capture | Time seen | Connections | Data | Closed by |
+|---|---|---|---|---|
+| Idle | ~177 s | 2 simultaneous | ~11.6 KB | Server |
+| Browsing | ~236 s | 2 simultaneous | ~14 KB | Server |
+| App usage | ~271 s | 2 simultaneous | ~14.5 KB | Server |
+
+Same domain, same two-connection structure, same server-initiated close, appearing once per session at a similar point (roughly 3–4.5 minutes in) regardless of what else was happening on the device. The recurrence across three different activity states suggests the traffic is more likely associated with background activity on the host than with a specific user action or website — but this is an inference from timing and structure, not something the capture can confirm on its own. The traffic is fully TLS-encrypted, so payload content is unavailable from packet capture alone; identifying the responsible process would require checking installed applications, browser extensions, and startup programs on the host, not further packet capture.
+
+**This is also the clearest weak point in the automated tool as built**: none of the three detection rules are designed to flag "same unfamiliar domain recurring across independent sessions." The TLD rule wouldn't catch `.net`, the packet-volume rule wouldn't catch an 11–15 KB exchange, and the idle-connection rule is non-functional (§3.1). A recurrence-tracking rule — flagging any external domain/IP seen in ≥2 of N captures that isn't on a known-good list — would have caught this automatically and is the single highest-value addition to `detection.py`.
+
+## 6. Comparative Summary
+
+| Metric | Idle | Browsing | App Usage |
+|---|---|---|---|
+| Total volume | 342 KB | ~85 MB | ~21 MB |
+| Dominant protocol | TLS/QUIC mixed | QUIC ≈ TLS | QUIC (~90%+) |
+| Unique DNS domains | ~8 | 70+ | <20 |
+| Automated alerts | 0 | 4 (all benign) | 0 |
+| Manual flag: `tzm.protechts.net` | Present | Present | Present |
+
+Packet volume alone spans a ~250x range between idle and browsing, indicating that these three states are sufficiently different in traffic volume and protocol behavior to provide a useful behavioral baseline. What doesn't vary is the one recurring unknown domain — the strongest argument that it's independent of user behavior.
+
+## 7. Findings, Limitations & Recommendations
+
+### 7.1 Key Findings
+
+- Traffic volume and protocol mix differ sharply and consistently across idle, browsing, and app-usage states, indicating that a workable behavioral baseline can be built from a handful of short controlled captures.
+- The single most notable finding is not from the automated pipeline but from manual analysis: `tzm.protechts.net` recurring across all three independent captures with an identical two-connection pattern (§5.4) — a signal the rule-based detector was never designed to catch.
+- The automated detector's four browsing-scenario alerts were all explainable as benign high-volume traffic.
+
+### 7.2 System Limitations
+
+1. **`IDLE_ALLOWED_IPS` is never populated.** `detection.py` initializes it as `[]`, and because the rule only fires `if IDLE_ALLOWED_IPS and ip not in IDLE_ALLOWED_IPS`, an empty list makes the condition always `False` — the idle-anomaly rule has never evaluated a real idle capture.
+2. **No recurrence-detection capability.** None of the three rules track a domain or IP appearing across multiple sessions, which is exactly the pattern that made `tzm.protechts.net` notable.
+3. **Static, untuned thresholds.** The 1000-packet threshold and fixed TLD list were not calibrated against the baseline data actually collected; 1000 packets is well below normal browsing-session volumes, so the rule mainly separates "very active" from "quiet" rather than "anomalous" from "normal."
+4. **Encrypted payloads limit conclusions.** All flagged traffic (`tzm.protechts.net` included) is TLS-encrypted; packet capture alone cannot confirm intent, only structure and timing.
+5. **Automated analysis is narrower in scope than manual analysis.** The pipeline reproduces protocol/IP/DNS metrics but does not automate conversation-level or IO-graph/temporal interpretation, which remained a manual task throughout (§2).
+
+### 7.3 Recommendations
+
+1. **Fix `IDLE_ALLOWED_IPS`.** Populate it with known local/router addresses, or remove the dependent rule rather than leave it silently inert.
+2. **Add a recurrence-detection rule.** Track domains/IPs seen across multiple capture sessions and flag repeats not present in a known-good allowlist — this is what would have turned the `tzm.protechts.net` finding into an automated alert instead of a manual one.
+3. **Recalibrate the packet-volume threshold** against the baseline data already collected, to reduce alerts on benign high-traffic talkers.
+4. **Resolve the unidentified domain at the host level** (installed software, extensions, startup items), since packet capture has been exhausted as a source of further insight.
+
+## 8. Conclusion
+
+This project set out to establish a behavioral baseline for a single device across idle, browsing, and app-usage states, and to test how much of that baseline a rule-based automated pipeline could reproduce without manual review. The three captures were distinct enough in volume and protocol mix to support a working baseline, and the Python pipeline reliably automated the quantitative side of that comparison — protocol counts, top talkers, and DNS frequency — without requiring a human to inspect raw packets.
+
+Where the automated layer fell short was detection itself. Two of its three rules either never fired (idle) or fired only on benign high-volume traffic (browsing), and none of them were built to catch the one pattern that manual analysis found most significant: the same unexplained domain, `tzm.protechts.net`, appearing in all three independent sessions with an identical connection structure. That gap is not a failure of the manual analysis — it is precisely what manual analysis is for — but it does mean the current tool cannot yet replace it.
+
+The practical takeaway is that a rule-based detector is only as good as the rules it's given, and static per-session thresholds miss anomalies that only become visible across sessions. The recommendations in §7.3, particularly recurrence detection, are the most direct route from "a tool that logs metrics" to "a tool that would have caught the finding this project's own manual analysis surfaced."
+
+## 9. Future Enhancements
+
+The following enhancements are outside the scope of the current implementation but represent possible directions for extending the system:
+
+- JSON export for SIEM integration (Splunk, ELK)
+- Whitelist/blacklist IP logic for idle-state monitoring (would also fix Recommendation 1)
+- Interactive HTML dashboard (Plotly)
+- ML-based anomaly scoring
+- Real-time capture and monitoring
+- External threat-intelligence feed integration
+
+## 10. Appendix
+
+**Screenshots** (`docs/screenshots/<scenario>/`): protocol hierarchy, DNS, IO graph, top IPs, and two conversation views, ×3 scenarios (18 files total).
+
+**Generated visualizations** (`visualizations/`): `<scenario>_protocols.png`, `<scenario>_top_ips.png` for each of the three scenarios.
+
+**Raw outputs referenced in this report:** `reports/idle_report.txt`, `reports/browsing_report.txt`, `reports/app_usage_report.txt` (automated); `reports/manual_idle_report.txt`, `reports/manual_browsing_report.txt`, `reports/manual_app_usage_report.txt` (manual); `alerts/idle_alerts.txt`, `alerts/browsing_alerts.txt`, `alerts/app_usage_alerts.txt`.
