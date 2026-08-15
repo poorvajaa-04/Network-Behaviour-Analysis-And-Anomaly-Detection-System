@@ -1,0 +1,33 @@
+ALERT LOG — Scenario: BROWSING
+Generated: 2026-08-15 14:23:17
+============================================================
+
+[ALERT 1]
+ Rule     : High Packet Volume from Single IP
+ Detail   : IP 108.158.251.61 sent 8654 packets
+ Severity : Medium
+ Time     : 14:23:17
+
+[ALERT 2]
+ Rule     : High Packet Volume from Single IP
+ Detail   : IP 192.168.1.9 sent 8090 packets
+ Severity : Medium
+ Time     : 14:23:17
+
+[ALERT 3]
+ Rule     : High Packet Volume from Single IP
+ Detail   : IP 192.168.1.1 sent 2180 packets
+ Severity : Medium
+ Time     : 14:23:17
+
+[ALERT 4]
+ Rule     : High Packet Volume from Single IP
+ Detail   : IP 172.66.144.64 sent 2006 packets
+ Severity : Medium
+ Time     : 14:23:17
+
+============================================================
+SUMMARY
+ High: 0 alert(s)
+ Medium: 4 alert(s)
+ Low: 0 alert(s)

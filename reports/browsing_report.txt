@@ -1,359 +1,60 @@
-ANALYSIS REPORT — BROWSING STATE
-================================================================================================================
-Capture File : browsing.pcap
-Capture Date : May 6, 2026 — 05:40:21 to 05:45:22 UTC
-Duration     : ~5 minutes (301 seconds)
-Total Packets: 73,902 frames | 88,939,509 bytes (~85 MB)
-=================================================================================================================
-
-
------------------------------------------------------------------------------------------------------------------
-Protocol Distribution:
------------------------------------------------------------------------------------------------------------------
-
-Traffic breakdown by bytes across the capture:
-
-  - About 38% is TLS — standard encrypted traffic over TCP
-  - About 42% is QUIC — the newer encrypted protocol used by Google and YouTube
-  - DNS (name lookups) accounts for roughly 1.3%
-  - SSDP and TP-Link discovery broadcasts make up under 0.1% each
-  - A small amount of plaintext HTTP was observed — discussed below
-
-Nearly everything is encrypted. All TLS sessions appear to use TLS 1.3. 
-QUIC traffic is notably higher here than in the idle capture, which is consistent with active browsing on Google 
-and YouTube properties.
-
-One difference from idle: a handful of unencrypted HTTP requests appear in this capture. 
-These are not page visits — they are certificate status checks (OCSP) and a Microsoft BITS download request 
-(a background Windows update component). No sensitive page content was transmitted in plaintext.
-
-VLAN-tagged frames again make up a large portion — around 53% — similar to the idle capture, and likely for the 
-same infrastructure reason.
-
-As a point of comparison with the idle capture: total bytes here are ~85 MB versus ~342 KB in the idle file. 
-This is roughly 250 times more data, reflecting active browsing rather than a quiet background state.
-
-
------------------------------------------------------------------------------------------------------------------
-Top IP Addresses:
------------------------------------------------------------------------------------------------------------------
-
-  Local devices seen:
-
-    192.168.1.9    — main computer, same device as in the idle capture
-    192.168.1.1    — home router
-    192.168.1.2    — LG Smart TV (same as before, sending TP-Link broadcasts)
-    192.168.1.5    — a device not seen in the idle capture; sent SSDP
-                     M-SEARCH broadcasts every ~60 seconds throughout the
-                     capture. Identity unclear — possibly a smart home hub,
-                     media player, or another computer.
-    192.168.1.7    — another device not seen in the idle capture. Only 12
-                     packets, all outbound, no inbound. Likely a passive
-                     device sending occasional broadcasts.
-    192.168.1.11   — appeared once with 3 packets. No further activity.
-
-  External servers contacted (top by packet count):
-
-    108.158.251.61   — 11,848 packets, 31 MB. The single dominant external
-                       address. TLS SNI identifies it as serving content for
-                       bookface-static.ycombinator.com (YCombinator's forum).
-                       This is the most-contacted IP in the entire capture.
-
-    172.66.144.64    — 2,838 packets, 4.3 MB. Cloudflare IP; TLS SNI points
-                       to www.ycombinator.com itself.
-
-    34.149.206.255   — 996 packets. Google Cloud IP; SNI points to
-                       www.bettermindlabs.org — an unfamiliar domain
-                       (discussed further below).
-
-    20.207.73.82     — 669 packets. Microsoft Azure; SNI points to github.com.
-
-    140.82.114.22    — 590 packets. GitHub's collector/telemetry server.
-
-    54.156.11.72     — 363 packets. AWS IP; could not be determined from SNI alone,
-                       possibly S3 or another AWS-hosted service.
-
-    34.160.37.117    — 346 packets. Google Cloud; also maps to
-                       www.bettermindlabs.org.
-
-    34.36.73.246     — 33 packets. The same tzm.protechts.net server from the
-                       idle capture. Appeared again here.
-
-  The main computer (192.168.1.9) generated around 50,424 packets by IPv6 count — again the dominant device by a 
-  wide margin.
-
-
-------------------------------------------------------------------------------------------------------------------
-DNS Queries:
-------------------------------------------------------------------------------------------------------------------
-
-  There were over 70 unique domain names queried during this capture.
-  Below is a rough chronological reconstruction of what was accessed:
-
-  ~8–11s    Google account services (accounts.google.com,
-            clientservices.googleapis.com, oauthaccountmanager.googleapis.com,
-            lh3.google.com) — queried by a second device (fe80::4fda:...).
-            This looks like a Google account sign-in or session refresh
-            happening on another device on the network at capture start.
-
-  ~12–15s   YouTube (www.youtube.com, i.ytimg.com, yt3.ggpht.com),
-            Google Docs (docs.google.com), Google Drive (drive.google.com),
-            Play store (play.google.com), and various Google support domains.
-            A wide spread of Google services loaded within the first 15 seconds.
-
-  ~13–14s   gbl.proctorauth.com and gbl9837ws.proctor.io appeared here.
-            ProctorAuth / Proctor.io is an online exam proctoring service —
-            software used to monitor students during remote tests. Its presence
-            so early and alongside YouTube is a little unusual (discussed below).
-
-  ~20s      googlevideo.com (YouTube's video delivery servers) — consistent
-            with a YouTube video starting to buffer.
-
-  ~25–30s   drive-thirdparty.googleusercontent.com, more Google Drive queries,
-            and youtube.com itself again.
-
-  ~157s     github.com appears for the first time — a new site being opened.
-
-  ~163s     www.linkedin.com looked up (consistent with idle capture behaviour).
-
-  ~166s     www.bettermindlabs.org queried for the first time.
-
-  ~171s     github.com related domains (alive.github.com, api.github.com,
-            github.githubassets.com, collector.github.com).
-
-  ~239s     www.ycombinator.com and bookface-static.ycombinator.com — the
-            YCombinator forum (Hacker News / Bookface) opened.
-
-  ~263s     Wix-related domains (frog.wix.com, static.wixstatic.com,
-            duplexer.wix.com, panorama.wixapps.net, sentry-next.wixpress.com)
-            — a Wix-hosted website was visited.
-
-  ~263s     cdn.dfsdk.com queried alongside the Wix domains. This is a CDN
-            used by certain ad or analytics SDKs. It's not a well-known name.
-
-  ~267s     app.posthog.com and us.i.posthog.com — PostHog is a product
-            analytics tool commonly embedded in websites. Its appearance here
-            is likely triggered by the Wix site or bettermindlabs.org loading
-            tracking scripts.
-
-  ~269s     www.googletagmanager.com, google-analytics.com, stats.g.doubleclick.net
-            — more ad/analytics tracking, loaded as part of a visited site.
-
-  ~268s     o4506690008121344.ingest.us.sentry.io — Sentry, an error reporting
-            service. Also likely embedded in a visited website.
-
-  ~292s     www.youtube.com again, img.youtube.com — YouTube revisited or a
-            new video opened near the end of the capture.
-
-  ~293s     yc-forum-uploads-bookface-production.s3.amazonaws.com — image or
-            file assets loading from the YC forum.
-
-  A "Poorvajaa" string appeared 8 times in DNS queries. This appears to be a hostname being looked up on the local 
-  network (possibly a printer, NAS, or another device named "Poorvajaa"). It did not resolve externally.
-
-  tzm.protechts.net was queried again at around 236 seconds — the same unknown domain from the idle capture, 
-  re-appearing here.
-
-
--------------------------------------------------------------------------------------------------------------------
-Conversations:
--------------------------------------------------------------------------------------------------------------------
-
-  Over 100 TCP sessions were recorded. The most significant ones:
-
-  YCombinator / bookface-static (192.168.1.9 ↔ 108.158.251.61)
-    Two sessions, together accounting for ~11,758 packets and ~33 MB.
-    Both started around 264 seconds into the capture and ran until the end (~295 seconds). The data volume is large 
-    — this is almost certainly static assets (images, JavaScript, CSS) loading for the YCombinator forum. The sheer
-    size makes this the dominant session in the capture.
-
-  YCombinator main site (192.168.1.9 ↔ 172.66.144.64)
-    2,838 packets, 4.3 MB, starting around 270 seconds. Runs alongside the above, consistent with a forum page 
-    loading its resources from multiple servers simultaneously.
-
-  Google / YouTube (client ↔ 2404:6800:4003:c04::65)
-    2,300 packets, 2.8 MB, starting at ~292 seconds. Google IPv6 address; likely YouTube content or Google Drive
-    assets loading.
-
-  GitHub (192.168.1.9 ↔ 20.207.73.82)
-    Two sessions totalling ~669 packets and ~743 KB, starting around 157–166 seconds and lasting over 76 seconds
-    each. This matches the GitHub DNS queries observed around the same time.
-
-  GitHub collector (192.168.1.9 ↔ 140.82.114.22)
-    571 packets, 337 KB, lasting ~133 seconds. The SNI points to collector.github.com — GitHub's telemetry endpoint
-    that records usage events (page visits, feature interactions). High byte count for a telemetry channel, though 
-    the traffic is encrypted.
-
-  LinkedIn (client ↔ 2620:1ec:50::12)
-    383 packets, 155 KB, running the full length of the capture from t=0.
-    Consistent with the idle capture — LinkedIn's persistent background session was still active when this capture
-    began.
-
-  bettermindlabs.org (192.168.1.9 ↔ 34.160.37.117 and 34.149.206.255)
-    Two sessions, combined ~504 packets and ~406 KB, starting around 237–247 seconds. The site itself is not 
-    widely known. 
-    PostHog and Google Analytics were loaded as part of visiting it, suggesting it's a real website with 
-    standard tracking embedded. 
-    A Sentry error reporting endpoint also fired, which is common on modern web apps.
-
-  tzm.protechts.net (192.168.1.9 ↔ 34.36.73.246)
-    33 packets, 14 KB, starting at ~236 seconds. Two simultaneous connections again (same pattern as the idle 
-    capture), both closed by the server after about 30 seconds. Smaller and shorter than in the idle capture, but
-    structurally identical behaviour.
-
-  AWS / S3 (192.168.1.9 ↔ 54.156.11.72)
-    Two sessions, 308 packets combined, starting at ~239 and ~249 seconds.
-    Likely file or image assets loading from an S3-hosted bucket, possibly related to YCombinator's forum uploads.
-
-
-------------------------------------------------------------------------------------------------------------------
-IO Graph Observations:
-------------------------------------------------------------------------------------------------------------------
-
-  Traffic measured in 30-second windows (larger intervals used due to much higher volume in this capture):
-
-  Interval      Frames    Bytes       Activity
-  ----------    ------    ---------   -----------------------------------------------
-  0 – 30s        8,837    7.7 MB      Strong burst immediately. Multiple Google
-                                      services load in the first 15 seconds —
-                                      YouTube, Docs, Drive, Play. ProctorAuth
-                                      also appears within the first 15 seconds.
-                                      A second device simultaneously resolves
-                                      Google account services at ~8–11s.
-
-  30 – 60s      11,931   11.7 MB      Highest frame count of any 30s window.
-                                      YouTube video buffering likely in progress.
-                                      googlevideo.com servers actively transferring
-                                      data. QUIC dominates this window.
-
-  60 – 90s       9,727    9.9 MB      Still elevated. Continued media loading.
-                                      TP-Link broadcasts from TV at ~53s, ~78s.
-                                      SSDP from 192.168.1.5 at ~65s.
-
-  90 – 120s      1,301     808 KB     Sharp drop. Active downloads likely finished.
-                                      Mostly keepalives. Possible idle pause
-                                      between browser tabs being switched.
-
-  120 – 150s       225      78 KB     Quietest window in the capture. Very little
-                                      happening — a near-idle period.
-
-  150 – 180s     3,388    2.2 MB      Activity resumes. GitHub opens at ~157s.
-                                      LinkedIn re-queried at ~163s. bettermindlabs
-                                      DNS at ~166s. Multiple new sessions opening.
-
-  180 – 210s     1,153     843 KB     Moderate traffic. Existing sessions (GitHub,
-                                      bettermindlabs) running but not bursting.
-                                      IGMP multicast joins at ~145s (just before).
-
-  210 – 240s     8,592    6.6 MB      Traffic picks up again. YCombinator and
-                                      related domains queried at ~239s. Amazon S3
-                                      connections open. tzm.protechts.net appears
-                                      at ~236s.
-
-  240 – 270s    16,186   25.3 MB      Largest data volume of any window.
-                                      YCombinator forum loading — 108.158.251.61
-                                      and 172.66.144.64 both transferring heavily.
-                                      Wix site visited at ~263s, triggering a
-                                      wave of analytics and CDN lookups.
-
-  270 – 300s    12,552   23.7 MB      Still very active. YCombinator session
-                                      continuing. More Google/YouTube assets.
-                                      Posthog, Sentry, Google Analytics all firing.
-
-  300s+             10    2.4 KB      Capture ends. Tail end of existing sessions.
-
-  Unlike the idle capture's regular 60-second rhythm, traffic here is more uneven — reflecting actual user actions 
-  (opening tabs, loading pages, switching between sites). The clearest pattern is two quiet gaps (90–150s) 
-  suggesting a pause in browsing, followed by a burst when new tabs opened.
-
-
---------------------------------------------------------------------------------------------------------------------
-Inference and Conclusion:
---------------------------------------------------------------------------------------------------------------------
-
-  WHAT HAPPENED DURING THIS CAPTURE
-  ─────────────────────────────────
-  This is an active browsing session, not a quiet background state. Based on
-  the DNS query timeline and conversation data, the likely sequence of events:
-
-    0–90s    : YouTube was open and loading (possibly watching a video).
-               Google Docs and Google Drive were also active — possibly
-               open in separate tabs. ProctorAuth loaded during this window
-               as well, which is worth noting (see below).
-
-    90–150s  : A pause. Little traffic. The user may have stopped interacting
-               with the browser, or was reading without triggering new loads.
-
-    150–180s : New tabs opened — GitHub appeared first, then LinkedIn was
-               re-queried (persistent session), then bettermindlabs.org.
-
-    180–240s : Sessions from the previous phase continued in the background.
-               Around 236s, tzm.protechts.net connected again.
-
-    240–300s : YCombinator's forum (Bookface) opened, generating the largest
-               data burst in the capture. A Wix-hosted website also loaded,
-               bringing with it a range of analytics and tracking scripts.
-
-  MORE DEVICES VISIBLE HERE
-  ─────────────────────────
-  Three local IP addresses appeared that were not in the idle capture:
-
-  192.168.1.5 sent SSDP M-SEARCH broadcasts every ~60 seconds throughout the session. This is a device actively 
-  looking for UPnP services on the network. It could be a smart home controller, a media app, or another computer. 
-  Its identity couldn't be confirmed from the packets alone.
-
-  192.168.1.7 sent a handful of packets, all outbound. Possibly a device that woke briefly, sent some background 
-  traffic, and went quiet.
-
-  192.168.1.11 appeared once. Not enough data to characterise it.
-
-  PROCTORAUTH — EXAM PROCTORING SOFTWARE
-  ──────────────────────────────────────
-  Two domains — gbl.proctorauth.com and cdn.proctorauth.com — were queried within the first 15 seconds of the capture, 
-  alongside YouTube and Google Docs. ProctorAuth and Proctor.io are services used by universities and online exam 
-  platforms to monitor students during remote assessments. They typically run as a browser extension or web app that 
-  checks system conditions (screen, camera, tab activity) during a test.
-
-  Finding ProctorAuth traffic alongside YouTube and Google Docs is unusual, but not necessarily suspicious. It may 
-  simply indicate that a browser tab, extension, or background session related to an online assessment platform was 
-  active during the capture. The packet data alone is not sufficient to determine the exact context of use.
-
-  BETTERMINDLABS.ORG
-  ──────────────────
-  This domain appeared around 166 seconds and generated ~406 KB of traffic across two sessions. It resolves to Google 
-  Cloud. The site loaded PostHog analytics, Google Analytics, Google Tag Manager, and a Sentry error reporting endpoint 
-  — all standard embedded tools on modern websites. The Sentry endpoint ID (o4506690008121344) is specific to one Sentry 
-  account, meaning the website is a real, actively maintained web app.
-  Nothing about the traffic itself is unusual — it's just a site that isn't widely recognisable by name.
-
-  tzm.protechts.net — SAME UNKNOWN DOMAIN, AGAIN
-  ──────────────────────────────────────────────
-  The same domain from the idle capture appeared again here, at around 236 seconds. The behaviour was structurally identical: 
-  two simultaneous connections opened, data exchanged, server closed the connections. This time the session was shorter 
-  (~30 seconds vs ~75 seconds) and the data volume was smaller (~14 KB vs ~11.6 KB). Its reappearance in an active browsing 
-  session, a few minutes after the idle capture, suggests it fires on a schedule or in response to some trigger — rather than 
-  being a one-off.
-
-  The recommendation from the idle capture still applies: identifying what application on 192.168.1.9 connects to this domain 
-  would be the most direct way to resolve whether it's expected behaviour or not.
-
-  TRACKING AND ANALYTICS LOAD
-  ────────────────────────────
-  Several analytics and tracking scripts were loaded as a side effect of visiting various sites — particularly toward the end 
-  of the capture. These included Google Analytics, Google Tag Manager, DoubleClick, PostHog, Sentry,and Microsoft Clarity 
-  (www.clarity.ms, scripts.clarity.ms, c.clarity.ms, b.clarity.ms). Microsoft Clarity is a session-recording tool that can 
-  capture mouse movements and clicks. These are all standard embedded services rather than signs of anything unusual, but 
-  they do illustrate how much third-party data collection happens in the background of ordinary browsing.
-
-  OVERALL PICTURE
-  ───────────────
-  This is a clearly active browsing session. The user appears to have had YouTube, Google Docs/Drive, GitHub, YCombinator's 
-  forum, and at least one Wix-hosted site open, along with LinkedIn running in the background. Traffic volume is dramatically 
-  higher than the idle capture, and the pattern reflects real user actions rather than automated background processes.
-
-  The main items that stand out are: ProctorAuth loading alongside YouTube and Docs (context-dependent whether this is notable), 
-  and tzm.protechts.net reappearing for the second time. Everything else observed — including the analytics scripts and 
-  Amazon S3 requests — is consistent with normal modern web browsing behaviour.
-
-=====================================================================================================================================================================
-End of Report
+ANALYSIS REPORT � Scenario: BROWSING
+============================================================
+
+PROTOCOL DISTRIBUTION
+  QUIC: 41703
+  TCP: 19680
+  TLS: 7351
+  DATA: 4011
+  DNS: 999
+  MDNS: 93
+  ICMPV6: 23
+  TPLINK-SMARTHOME: 9
+  SSDP: 8
+  LLMNR: 8
+
+TOP SOURCE IPs
+  108.158.251.61: 8654 packets
+  192.168.1.9: 8090 packets
+  192.168.1.1: 2180 packets
+  172.66.144.64: 2006 packets
+  20.207.73.82: 498 packets
+  34.149.206.255: 453 packets
+  140.82.114.22: 375 packets
+  54.156.11.72: 196 packets
+  34.160.37.117: 195 packets
+  4.153.129.168: 119 packets
+
+TOP DESTINATION IPs
+  192.168.1.9: 15183 packets
+  108.158.251.61: 3194 packets
+  192.168.1.1: 2391 packets
+  172.66.144.64: 832 packets
+  34.149.206.255: 543 packets
+  140.82.114.22: 215 packets
+  20.207.73.82: 171 packets
+  54.156.11.72: 167 packets
+  34.160.37.117: 151 packets
+  4.153.129.168: 62 packets
+
+DNS QUERIES
+  ssl.gstatic.com: 36 queries
+  content-autofill.googleapis.com: 33 queries
+  docs.google.com: 30 queries
+  drive.google.com: 30 queries
+  play.google.com: 27 queries
+  i.ytimg.com: 27 queries
+  www.google.com: 24 queries
+  lh3.googleusercontent.com: 24 queries
+  optimizationguide-pa.googleapis.com: 24 queries
+  fonts.gstatic.com: 24 queries
+  www.googleapis.com: 24 queries
+  ogads-pa.clients6.google.com: 21 queries
+  lh3.google.com: 18 queries
+  www.youtube.com: 18 queries
+  www.googletagmanager.com: 18 queries
+  update.googleapis.com: 16 queries
+  tunnel.googlezip.net: 16 queries
+  oauthaccountmanager.googleapis.com: 15 queries
+  fonts.googleapis.com: 15 queries
+  www.google.co.in: 13 queries
