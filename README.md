@@ -55,7 +55,7 @@ network-behavior-anomaly-detection/
 │   ├── idle_report.txt
 │   ├── browsing_report.txt
 │   └── app_usage_report.txt
-    └── manual_app_usage_report.txt
+|   └── manual_app_usage_report.txt
 │   ├── manual_browsing_report.txt
 │   └── manual_app_usage_report.txt
 │
@@ -70,11 +70,11 @@ network-behavior-anomaly-detection/
 │   └── ...
 │
 ├── docs/
-│   └── project_report.md      # Full formal project report
 |   └── screenshots/
 |       ├── idle/
 │       ├── browsing/
 │       └── app_usage/
+|   └── PROJECT_REPORT.md      # Full formal project report
 │
 ├── requirements.txt
 ├── .gitignore
