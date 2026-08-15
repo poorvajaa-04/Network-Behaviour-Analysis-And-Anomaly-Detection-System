@@ -1,306 +1,48 @@
-ANALYSIS REPORT — APP USAGE STATE
-===========================================================================================================================
-Capture File : app_usage.pcap
-Capture Date : May 6, 2026 — 05:49:46 to 05:54:48 UTC
-Duration     : ~5 minutes (301 seconds)
-Total Packets: 20,469 frames | ~21 MB
-===========================================================================================================================
-
-Note: This capture was taken roughly 4 minutes after the browsing capture ended.
-The same device (192.168.1.9) and network appear across all three captures.
-
-
-----------------------------------------------------------------------------------------------------------------------------
-Protocol Distribution:
-----------------------------------------------------------------------------------------------------------------------------
-
-Traffic breakdown by bytes:
-
-  - QUIC accounts for the vast majority — around 93% of all bytes. This is dramatically higher than either previous capture 
-  and points to one dominant application using QUIC heavily throughout the session.
-  - TLS over TCP accounts for roughly 4.5% of bytes.
-  - DNS, mDNS, SSDP, and TP-Link together make up under 1%.
-  - No plaintext HTTP was observed.
-
-The QUIC dominance here is the defining characteristic of this capture.
-In the idle capture, QUIC was present but mixed with TLS traffic. In the browsing capture, QUIC was roughly equal to TLS. 
-Here, almost everything is QUIC — which narrows down what was running significantly (discussed in the Inference section).
-
-VLAN-tagged frames make up about 78% here, higher than in previous captures, though the same infrastructure explanation 
-likely applies.
-
-Compared to the other captures:
-  Idle      : ~342 KB total, mixed protocols, background-only activity
-  Browsing  : ~85 MB total, QUIC and TLS roughly equal, many sites visited
-  App usage : ~21 MB total, almost entirely QUIC, very few domains queried
-
-
-------------------------------------------------------------------------------------------------------------------------------
-Top IP Addresses:
-------------------------------------------------------------------------------------------------------------------------------
-
-  Local devices:
-
-    192.168.1.9    — main computer, same as all previous captures
-    192.168.1.1    — home router
-    192.168.1.2    — LG Smart TV (sending SSDP and TP-Link broadcasts)
-    192.168.1.5    — the same unidentified device from the browsing capture,
-                     again sending periodic SSDP M-SEARCH broadcasts
-    192.168.1.11   — seen briefly in the browsing capture; more active here.
-                     Repeatedly sent mDNS queries looking for Chromecast
-                     devices (_googlecast._tcp.local) and SSDP searches.
-                     Likely a Chromecast, Android TV, or a device with
-                     Google Cast capability trying to find a receiver.
-    192.168.1.7    — one packet, same as before. Effectively invisible.
-
-  External servers:
-
-    2404:a800:6:285::d  — by far the most-contacted external address.
-                          16,772 packets, ~18.9 MB — nearly the entire
-                          external traffic volume. TLS SNI reveals this
-                          serves rr2---sn-ci5gup-h55el.googlevideo.com,
-                          which is a YouTube video delivery server. All
-                          traffic to this address is QUIC.
-
-    2620:1ec:50::12     — LinkedIn's server. 644 packets, 368 KB.
-                          Consistent with LinkedIn running in the background,
-                          same as in both previous captures.
-
-    2404:6800:4007:83a::200e — Google IP. 643 packets, 385 KB.
-                          Likely a Google service or Gmail.
-
-    2404:a800:6:a::1f   — 692 packets, 747 KB. Another YouTube-related
-                          Google address based on the IP range pattern
-                          (2404:a800 is Google's Asia-Pacific CDN block).
-
-    34.36.73.246        — tzm.protechts.net again. 34 packets, 14.5 KB.
-
-    172.217.26.46       — Google IP (172.217.x.x range). 21 packets,
-                          2.3 KB. Brief contact; identity unclear from
-                          available SNI data.
-
-    2600:1901:1:7c5::   — Spotify's background sync server, same as
-                          seen in both prior captures.
-
-
---------------------------------------------------------------------------------------------------------------------------------
-DNS Queries:
---------------------------------------------------------------------------------------------------------------------------------
-
-  This is the quietest DNS picture across all three captures — only a handful of unique external domains were queried:
-
-  ~5–8s     googlevideo.com servers (two specific YouTube CDN nodes:
-            rr2---sn-ci5gup-h55el and rr12---sn-ci5gup-h55e) —
-            queried within the first 8 seconds, suggesting a YouTube
-            video was already playing or about to start when the
-            capture began.
-
-  ~7–10s    tpc.googlesyndication.com and pagead2.googlesyndication.com
-            — Google's ad serving domains. These are loaded as part of
-            the YouTube page rather than indicating ad viewing directly.
-
-  ~10s      lh4.googleusercontent.com — Google user content (likely a
-            profile picture or thumbnail).
-
-  ~20s      googleads.g.doubleclick.net — another ad/tracking domain
-            embedded in YouTube.
-
-  ~20s      spclient.wg.spotify.com — Spotify's background sync server,
-            queried by the second device (fe80::4fda:...) as it has
-            been in all three captures.
-
-  ~45s      safebrowsing.googleapis.com — Chrome's Safe Browsing API,
-            which checks URLs in the background for malicious content.
-            This is a routine browser check, not triggered by a specific
-            navigation event.
-
-  ~60s      www.linkedin.com — first LinkedIn re-query. Repeated again
-            at ~151s and ~211s, maintaining the same ~60-second cycle
-            seen across all three captures.
-
-  ~157s     chromewebstore.googleapis.com — Chrome checked the web store,
-            possibly to verify an installed extension or check for updates.
-            No extension download followed in the visible traffic.
-
-  ~261s     www.googleapis.com — a single Google APIs query near the end.
-
-  ~271s     tzm.protechts.net — appearing for the third time across the
-            three captures, again around the 4–5 minute mark.
-
-  ~288s     ssl.gstatic.com — Google's SSL static assets server.
-
-  The small number of DNS queries is striking. In the browsing capture, 70+ unique domains were looked up. Here there are fewer 
-  than 20, and most are Google/YouTube subdomains. This is consistent with a single application (YouTube) running in the foreground 
-  and very little else happening.
-
-
--------------------------------------------------------------------------------------------------------------------------------------
-Conversations:
--------------------------------------------------------------------------------------------------------------------------------------
-
-  The session list is much simpler than the browsing capture.
-
-  YouTube video delivery (client ↔ 2404:a800:6:285::d)
-    16,772 packets, ~18.9 MB, running for essentially the full 5-minute capture. All traffic is QUIC. This is the dominant session by 
-    a very wide margin — it accounts for roughly 90% of all traffic in the file.
-    The address belongs to Google's video delivery network, confirmed by the SNI (rr2---sn-ci5gup-h55el.googlevideo.com). 
-    The consistent high-volume QUIC stream is characteristic of video playback buffering.
-
-  YouTube secondary stream (client ↔ 2404:a800:6:a::1f)
-    692 packets, ~747 KB. Likely a second stream for audio or adaptive quality, running alongside the primary video stream. 
-    Both addresses belong to the same Google CDN block.
-
-  LinkedIn persistent session (client ↔ 2620:1ec:50::12)
-    644 packets, 368 KB, spanning the full capture from t=3.5s.
-    Exactly the same pattern as all previous captures — LinkedIn's background session running in an open browser tab.
-
-  Google services (client ↔ 2404:6800:4007:83a::200e)
-    643 packets, 385 KB. A Google address with consistent low-level activity throughout — likely Gmail or another Google service in
-    a background tab.
-
-  Cloudflare (client ↔ 2606:4700:83b1:...)
-    48 packets, 4.5 KB, lasting the full 300 seconds. This is the same long-lived idle Cloudflare session seen in the browsing capture
-    (same ports, same address). It appears to be a persistent connection that carried over from the previous session, holding open with
-    minimal keepalive traffic.
-
-  Spotify (client ↔ 2600:1901:1:7c5::)
-    22 packets, 4.7 KB. Connected at ~20s, exchanged data briefly, then went quiet until a brief keepalive exchange at ~130s. 
-    Same background sync behaviour as both previous captures.
-
-  tzm.protechts.net (192.168.1.9 ↔ 34.36.73.246)
-    Two simultaneous connections opened at t=271.13s. 34 packets total, 14.5 KB combined. Both connections were closed by the server at 
-    the very end of the capture (t=301.47s — the final few packets in the file).
-    This is the same two-connection pattern as in the previous two captures.
-
-  DNS over TCP (many sessions to 192.168.1.1:53)
-    Numerous short DNS sessions, each lasting under 0.1 seconds.
-    These correspond to the LinkedIn query cycles (3 sessions each time) and the tzm.protechts.net lookup (3 sessions). 
-    Identical pattern to what was observed in both prior captures.
-
-  192.168.1.11 (Chromecast-like device)
-    Not a TCP conversation — this device only sent mDNS and SSDP broadcasts. It appeared at ~8s (first Chromecast query), then again
-    at ~173s with SSDP searches, continuing periodically until ~244s.
-    No responses to its queries were visible in the capture, suggesting no Chromecast device answered it.
-
-
---------------------------------------------------------------------------------------------------------------------------------------
-IO Graph Observations:
---------------------------------------------------------------------------------------------------------------------------------------
-
-  Traffic in 30-second windows:
-
-  Interval      Frames    Bytes       Activity
-  ----------    ------    ---------   -----------------------------------------------
-  0 – 30s        3,572    3.3 MB      Capture opens with YouTube CDN traffic already
-                                      flowing. googlevideo DNS queries at ~5–8s suggest
-                                      the video session started just before capture began.
-                                      Ad domains (googlesyndication, doubleclick) load
-                                      at ~7–20s. Spotify connects at ~20s. LG TV sends
-                                      a burst of SSDP NOTIFY messages at ~24–40s.
-
-  30 – 60s       2,519    2.7 MB      Lower than the opening window but still steady.
-                                      YouTube QUIC stream continues throughout. LinkedIn
-                                      re-queried at ~60s (60-second cycle on schedule).
-                                      Chrome Safe Browsing check at ~45s.
-
-  60 – 90s       4,629    5.1 MB      Highest frame count and data volume of any window.
-                                      LinkedIn re-query triggers new TLS sessions at ~60s,
-                                      and YouTube continues buffering. The combination
-                                      creates the peak of the capture.
-
-  90 – 150s      3,064    3.5 MB      (combined) Traffic drops to a consistent mid-level.
-                                      YouTube stream likely caught up — buffering ahead
-                                      of playback, so throughput settles. Spotify keepalive
-                                      at ~130s. No new sites or apps opening.
-
-  150 – 180s     1,542    1.6 MB      LinkedIn re-queried at ~151s. Chrome web store check
-                                      at ~157s. Otherwise steady low-level YouTube traffic.
-
-  180 – 210s     1,549    1.7 MB      Quiet. Existing sessions only. Nothing new opening.
-
-  210 – 240s       990     999 KB     Quietest window after the 30–60s dip. LinkedIn
-                                      re-queried at ~211s. YouTube traffic has slowed —
-                                      the buffer may be well ahead of playback here,
-                                      or the video was paused.
-
-  240 – 270s     1,376    1.4 MB      Slight recovery. Steady low-volume QUIC from YouTube.
-                                      googleapis.com queried at ~261s.
-
-  270 – 300s     1,118    1.1 MB      tzm.protechts.net DNS and connections at ~271s.
-                                      ssl.gstatic.com at ~288s. LinkedIn re-query at ~211s
-                                      was the last cycle before capture ends. Traffic
-                                      gradually tapering.
-
-  300s+             10      810 B     Final server FINs from tzm.protechts.net received
-                                      as the capture closes.
-
-  The traffic pattern here is flatter and more sustained than the browsing capture's sharp spikes. Rather than bursts triggered by page loads, 
-  the volume is driven by a continuous video stream with gradual fluctuations as the buffer fills and drains. The 60–90s peak is the one 
-  clear spike, coinciding with LinkedIn reconnecting at the same time as video buffering.
-
-
-------------------------------------------------------------------------------------------------------------------------------------------
-Inference and Conclusion:
-------------------------------------------------------------------------------------------------------------------------------------------
-
-  WHAT WAS RUNNING DURING THIS CAPTURE
-  ────────────────────────────────────
-  The traffic pattern strongly suggests YouTube playing a video in the browser, with LinkedIn and possibly Gmail open in background tabs.
-
-  YouTube's video delivery servers account for ~90% of all traffic. The DNS queries for googlevideo.com appear within the first 8 seconds —
-  before most other activity — suggesting the video was already loaded when the capture started. The QUIC stream to 2404:a800:6:285::d ran 
-  at a sustained rate for the full 5 minutes with gradual fluctuations typical of adaptive video buffering. The ad-related domains 
-  (googlesyndication, doubleclick) that appeared early are consistent with a YouTube page with ads loading, not necessarily with an ad being
-  watched — they load as part of the page infrastructure.
-
-  LinkedIn's background session continued exactly as seen in the idle and browsing captures — the same 60-second re-query cycle, the same 
-  server address, consistent with a pinned tab or always-on session.
-
-  THE TP-LINK PATTERN — A CLARIFICATION
-  ─────────────────────────────────────
-  In the idle and browsing captures, TP-Link discovery commands appeared to come from 192.168.1.2 (the LG TV), which seemed unusual. 
-  The same is true here, but with a notable addition: the TP-Link commands are specifically requesting device status ({get_sysinfo} 
-  and {get_realtime} for energy monitoring), and they are sent every ~25 seconds like clockwork throughout the capture. 
-  This regularity and the specific command format suggest the TV may have a TP-Link smart home integration built into its WebOS 
-  platform, or the traffic may originate from another integrated smart-home component associated with the same environment. 
-  Either way, something on the network is actively polling a TP-Link smart plug or energy monitor at a consistent interval across all 
-  three captures.
-
-  192.168.1.11 — LOOKING FOR A CHROMECAST
-  ────────────────────────────────────────
-  This device sent repeated mDNS queries for _googlecast._tcp.local — the service type used by Chromecast devices to advertise themselves 
-  on a local network. It also sent SSDP searches. No device responded to these queries in the capture. This suggests either there is no 
-  Chromecast on the network, or it's on a different network segment and not reachable via multicast. The device identity is still unclear 
-  — it could be an Android phone, an Android TV box, or any device with Google Home or Google TV software that periodically scans for 
-  Chromecast receivers.
-
-  tzm.protechts.net — NOW SEEN IN ALL THREE CAPTURES
-  ───────────────────────────────────────────────────
-  The domain appeared in the idle capture (at ~178s), the browsing capture (at ~236s), and now here (at ~271s). Across all three captures, 
-  the pattern is consistent:
-    - Three parallel DNS queries each time
-    - Two simultaneous TCP connections opened immediately after
-    - Small amounts of data exchanged (11–15 KB each time)
-    - Server closes the connections after 30–75 seconds
-    - Timing varies but tends to appear in the latter half of each capture
-
-  The fact that it appeared across three separate sessions — one idle, one active browsing, one video playback — makes it very unlikely to be
-  triggered by a specific user action or website. It appears to run on its own schedule, independently of what else is happening. Whether that 
-  makes it a legitimate background service or something worth investigating is a question the packet data alone cannot answer, since all traffic 
-  is encrypted. The recommendation from the previous reports still stands: checking what is installed and running on 192.168.1.9 would be the
-  clearest way to identify it.
-
-  OVERALL PICTURE
-  ────────────────
-  This is the simplest of the three captures to characterise. One application — most likely YouTube — dominated the session, with everything else
-  running at low volume in the background. The traffic pattern is smooth and sustained rather than bursty, which is consistent with video streaming. 
-  The devices and background services seen here are consistent with the other two captures, with no new unknown destinations introduced except for 
-  the continued presence of tzm.protechts.net.
-
-  Across all three captures (idle, browsing, app usage), the network picture is of a single primary computer with LinkedIn and Spotify running 
-  persistently in the background, a smart TV in standby, an unidentified device sending SSDP broadcasts, and a Chromecast-seeking device that
-  can't find what it's looking for. The one recurring item that doesn't fit neatly into that picture is tzm.protechts.net, which has now appeared 
-  in every single capture.
-
-=========================================================================================================================================================
-End of Report
+ANALYSIS REPORT � Scenario: APP_USAGE
+============================================================
+
+PROTOCOL DISTRIBUTION
+  QUIC: 17981
+  DATA: 1276
+  TCP: 653
+  TLS: 313
+  DNS: 103
+  MDNS: 83
+  SSDP: 30
+  ICMPV6: 15
+  TPLINK-SMARTHOME: 9
+  ARP: 6
+
+TOP SOURCE IPs
+  192.168.1.9: 236 packets
+  192.168.1.1: 193 packets
+  192.168.1.2: 55 packets
+  192.168.1.5: 29 packets
+  34.36.73.246: 18 packets
+  172.217.26.46: 11 packets
+  192.168.1.11: 8 packets
+  192.168.1.7: 1 packets
+
+TOP DESTINATION IPs
+  192.168.1.9: 222 packets
+  192.168.1.1: 210 packets
+  224.0.0.251: 49 packets
+  239.255.255.250: 30 packets
+  34.36.73.246: 16 packets
+  255.255.255.255: 14 packets
+  172.217.26.46: 10 packets
+
+DNS QUERIES
+  tpc.googlesyndication.com: 18 queries
+  www.linkedin.com: 18 queries
+  www.googleapis.com: 9 queries
+  rr2---sn-ci5gup-h55el.googlevideo.com: 6 queries
+  rr12---sn-ci5gup-h55e.googlevideo.com: 6 queries
+  pagead2.googlesyndication.com: 6 queries
+  lh4.googleusercontent.com: 6 queries
+  googleads.g.doubleclick.net: 6 queries
+  safebrowsing.googleapis.com: 6 queries
+  chromewebstore.googleapis.com: 6 queries
+  tzm.protechts.net: 6 queries
+  ssl.gstatic.com: 6 queries
+  spclient.wg.spotify.com: 4 queries

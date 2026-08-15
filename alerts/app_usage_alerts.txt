@@ -1,0 +1,10 @@
+ALERT LOG — Scenario: APP_USAGE
+Generated: 2026-08-15 14:33:24
+============================================================
+
+No anomalies detected.
+============================================================
+SUMMARY
+ High: 0 alert(s)
+ Medium: 0 alert(s)
+ Low: 0 alert(s)
